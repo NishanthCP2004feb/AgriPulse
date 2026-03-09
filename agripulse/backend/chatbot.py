@@ -1,12 +1,12 @@
 """
 Chatbot module for AgriPulse.
-Uses Google Gemini to answer farmer questions on all agriculture topics
+Uses NVIDIA AI (OpenAI-compatible) to answer farmer questions on all agriculture topics
 including soil health, crop diseases, pest management, irrigation,
 fertilizers, weather impact, farming techniques, and more — in multiple languages.
 """
 
-import google.generativeai as genai
-from config import GEMINI_API_KEY
+from openai import OpenAI
+from config import NVIDIA_API_KEY, NVIDIA_BASE_URL
 
 # ── Language display names ──────────────────────────────────────
 LANG_NAMES = {
@@ -90,18 +90,25 @@ def chat_response(message: str, lang: str = "en", soil_context: dict = None) -> 
         A farmer-friendly response string.
     """
     # ── Fallback when no API key ────────────────────────────────
-    if not GEMINI_API_KEY:
+    if not NVIDIA_API_KEY:
         return _fallback_response(message, lang)
 
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        client = OpenAI(base_url=NVIDIA_BASE_URL, api_key=NVIDIA_API_KEY)
         prompt = _build_chat_prompt(message, lang, soil_context)
-        response = model.generate_content(prompt)
-        text = response.text.strip()
+        response = client.chat.completions.create(
+            model="meta/llama-3.1-8b-instruct",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        text = response.choices[0].message.content.strip()
         return text if text else _fallback_response(message, lang)
     except Exception as exc:
-        print(f"[AgriPulse Chatbot] Gemini API error: {exc}")
+        print(f"[AgriPulse Chatbot] NVIDIA API error: {exc}")
         return _fallback_response(message, lang)
 
 

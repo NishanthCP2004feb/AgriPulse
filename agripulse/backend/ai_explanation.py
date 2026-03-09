@@ -1,13 +1,13 @@
 """
 AI Explanation module for AgriPulse.
-Uses Google Gemini to generate farmer-friendly explanations.
+Uses NVIDIA AI (OpenAI-compatible) to generate farmer-friendly explanations.
 The AI does NOT calculate scores or deficiencies — it only explains
 the pre-computed results in simple language.
 Supports multilingual output via the `lang` parameter.
 """
 
-import google.generativeai as genai
-from config import GEMINI_API_KEY
+from openai import OpenAI
+from config import NVIDIA_API_KEY, NVIDIA_BASE_URL
 
 # ── Language display names for the prompt ───────────────────────
 LANG_NAMES = {
@@ -44,7 +44,7 @@ def _build_prompt(result: dict, lang: str = "en") -> str:
 
 def generate_explanation(result: dict, lang: str = "en") -> str:
     """
-    Call Gemini API to produce a plain-language explanation.
+    Call NVIDIA AI API to produce a plain-language explanation.
     Falls back to a rule-based explanation if the API key is missing or the call fails.
 
     Args:
@@ -68,6 +68,20 @@ def generate_explanation(result: dict, lang: str = "en") -> str:
             "This will help your plants grow stronger and produce a better harvest."
         )
 
-    # Gemini API removed from analysis for instant results.
-    # Chatbot still uses Gemini independently.
-    return _fallback()
+    if not NVIDIA_API_KEY:
+        return _fallback()
+
+    try:
+        client = OpenAI(base_url=NVIDIA_BASE_URL, api_key=NVIDIA_API_KEY)
+        prompt = _build_prompt(result, lang)
+        response = client.chat.completions.create(
+            model="meta/llama-3.1-8b-instruct",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=512,
+        )
+        text = response.choices[0].message.content.strip()
+        return text if text else _fallback()
+    except Exception as exc:
+        print(f"[AgriPulse] NVIDIA API error: {exc}")
+        return _fallback()

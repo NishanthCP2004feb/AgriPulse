@@ -8,8 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Gemini API Key ──────────────────────────────────────────────
-GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+# ── NVIDIA / OpenAI-compatible API Key ──────────────────────────
+NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
+NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
 
 # ── Universal Nutrient Deficiency Thresholds ────────────────────
 # "min"     = hard deficiency cutoff (below → fertiliser needed)
